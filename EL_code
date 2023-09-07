@@ -1,0 +1,132 @@
+Once ClearPrintLog;
+[intrabarordergeneration = false];
+{Remember to put on Daily chart. 
+	and to format indicator to:
+		decimals, 
+		intrabarordergeneration = FALSE,
+		make plots DOTS,
+	 }
+
+{if openInt is greater than its average AND volume is less than its average: alert. vice versa}	 
+//need to edit radarscreen color plots. This can be used on chart OR radarscreen. 
+ Input:
+	AvgLength(34), //for both the average, and the SD calculations. Need to be the same otherwise the average won't be to the full sample for SD calculations. look up the formula. :)
+ 	Printt(True);
+ variables: 
+ 	AverageOpenInterest(0),
+	SD_sum(0),
+	ii(0),
+	SD_calculation(0),
+	InsideOneSD(0),
+	InsidetwoSD(0),
+	InsidethreeSD(0),
+	InsidefourSD(0),
+	InsidefiveSD(0),
+	InsidesixSD(0),
+	SD_combinedsum(0),
+	SD_DividedByN(0),
+	Count(0),
+	AverageVolume(0);
+
+
+AverageVolume = AverageFC(Volume, AvgLength);
+//AverageFC = SummationFC( Price, Length ) / Length
+AverageOpenInterest = AverageFC(OpenInt, AvgLength);
+Value1 = iff(AverageVolume<>0, AverageOpenInterest/AverageVolume , 1);
+
+if lastbaronchart then
+begin
+	for ii = AvgLength downto 0
+	Begin
+		//calc sd
+		SD_sum = Square(Absvalue(OpenInt[ii]-AverageOpenInterest));
+		SD_combinedsum = SD_combinedsum + SD_sum;
+		SD_DividedByN = SD_combinedsum/AvgLength;
+		SD_calculation = squareroot(SD_DividedByN);		
+		//statsPrint
+		if OpenInt[ii] < (AverageOpenInterest + (SD_calculation)) then InsideOneSD = InsideOneSD+1;
+		if OpenInt[ii] < (AverageOpenInterest + (SD_calculation)*2) then InsideTwoSD = InsideTwoSD+1; 
+		if OpenInt[ii] < (AverageOpenInterest + (SD_calculation)*3) then InsideThreeSD = InsideThreeSD+1; 
+		if OpenInt[ii] < (AverageOpenInterest + (SD_calculation)*4) then InsideFourSD = InsideFourSD+1; 
+		if OpenInt[ii] < (AverageOpenInterest + (SD_calculation)*5) then InsideFiveSD = InsideFiveSD+1; 
+		if OpenInt[ii] < (AverageOpenInterest + (SD_calculation)*6) then InsidesixSD = InsidesixSD+1; 
+		count = count+1; 	
+		if printt = true then print("The last ", count, " bars, ", iff(count<>0, InsideoneSD/count,1)*100, " % of them were within 1SD. ", 
+									"And ", iff(count<>0, InsidetwoSD/count,1)*100, " % of them were within 2SD",
+									"And ", iff(count<>0, InsidethreeSD/count,1)*100, " % of them were within 3SD",
+									"And ", iff(count<>0, InsidefourSD/count,1)*100, " % of them were within 4SD",
+									"And ", iff(count<>0, InsidefiveSD/count,1)*100, " % of them were within 5SD",
+									"And ", iff(count<>0, InsidesixSD/count,1)*100, " % of them were within 6SD");
+		//reset variables once done with loop
+		if ii = 0 then 	
+		begin
+			SD_combinedsum = 0; 
+			Count=0; 
+			InsideoneSD=0;
+			InsidetwoSD=0;
+			InsidethreeSD=0;
+			InsidefourSD=0;
+			InsidefiveSD=0;
+			InsidesixSD=0;
+		End;
+	end;
+end;
+
+Plot2( AverageVolume, !( "AvgVolume" ) );
+Plot3( AverageOpenInterest, !( "AvgOpenInt" ) );
+Plot4( OpenInt[2], !( "OpenInt-2" ) );
+Plot5( OpenInt[1], !( "OpenInt-1" ) );
+Plot6( OpenInt, !( "OpenInt" ) );
+Plot10( Value1, !( "OV Ratio" ) );
+
+if OpenInt >= (AverageOpenInterest*2) then 
+Begin
+	Setplotcolor(6, Black);
+	setplotbgcolor(6, green);
+end;
+if OpenInt >= (AverageOpenInterest*1.5) then 
+Begin
+	Setplotcolor(6, Black);
+	setplotbgcolor(6, yellow);
+end;
+//
+if OpenInt[1] >= (AverageOpenInterest*2) then 
+Begin
+	Setplotcolor(5, Black);
+	setplotbgcolor(5, green);
+end;
+if OpenInt[1] >= (AverageOpenInterest*1.5) then 
+Begin
+	Setplotcolor(5, Black);
+	setplotbgcolor(5, yellow);
+end;
+//
+if OpenInt[2] >= (AverageOpenInterest*2) then 
+Begin
+	Setplotcolor(4, Black);
+	setplotbgcolor(4, green);
+end;
+if OpenInt[2] >= (AverageOpenInterest*1.5) then 
+Begin
+	Setplotcolor(4, Black);
+	setplotbgcolor(4, yellow);
+end;
+//
+
+
+{if barnumber > AvgLength then 
+Begin
+	Plot1( OpenInt, !( "CurrentOpenInt" ) );
+		setplotcolor(1, cyan);
+	Plot2( Volume, !( "CurrentVolume" ) );
+		setplotcolor(2, darkblue);
+	Plot3( AverageOpenInterest, !( "AvgOpenInt" ) );
+		setplotcolor(3, red);
+	Plot4( AverageOpenInterest+(SD_calculation*1), !( "+1SD" ) );
+		setplotcolor(4, darkgray);
+	Plot5( AverageOpenInterest+(SD_calculation*2), !( "+2SD" ) );
+		setplotcolor(5, darkgray);
+	Plot6( AverageOpenInterest-(SD_calculation*1), !( "-1SD" ) );
+		setplotcolor(6, darkgray);
+End;
+	}
